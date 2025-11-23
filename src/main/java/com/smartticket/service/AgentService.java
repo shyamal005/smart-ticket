@@ -25,13 +25,13 @@ public class AgentService {
     @Value("${openai.model}")
     private String model;
 
-    @Value("${openai.api.url}") // We load the URL from config now
+    @Value("${openai.api.url}") 
     private String apiUrl;
 
     private final RestTemplate restTemplate = new RestTemplate();
 
     public Ticket createAndAnalyzeTicket(Ticket ticket) {
-        // 1. System Prompt (The Persona)
+        
         String systemPrompt = """
             You are a helpful customer support AI.
             Analyze the user's complaint.
@@ -44,13 +44,13 @@ public class AgentService {
 
         String userMessage = "Customer Issue: " + ticket.getDescription();
 
-        // 2. Build Request (Same format as OpenAI!)
+       
         ChatRequest request = new ChatRequest(
                 model,
                 List.of(new Message("system", systemPrompt), new Message("user", userMessage))
         );
 
-        // 3. Headers
+       
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("Authorization", "Bearer " + apiKey);
@@ -58,7 +58,7 @@ public class AgentService {
         HttpEntity<ChatRequest> entity = new HttpEntity<>(request, headers);
 
         try {
-            // 4. Call the API (Groq)
+           
             ChatResponse response = restTemplate.postForObject(
                     apiUrl,
                     entity,
