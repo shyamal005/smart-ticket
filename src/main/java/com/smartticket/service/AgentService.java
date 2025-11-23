@@ -1,9 +1,15 @@
 package com.smartticket.service;
 
+import com.smartticket.model.OpenAiDto.*;
 import com.smartticket.model.Ticket;
 import com.smartticket.repository.TicketRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 
@@ -13,35 +19,76 @@ public class AgentService {
     @Autowired
     private TicketRepository ticketRepository;
 
-    public Ticket createAndAnalyzeTicket(Ticket ticket) {
-        // ---------------------------------------------------------
-        // SIMULATION MODE: "Rule-Based Agent"
-        // This mimics the AI behavior without needing an API Key.
-        // ---------------------------------------------------------
-        
-        String desc = ticket.getDescription().toLowerCase();
+    @Value("${openai.api.key}")
+    private String apiKey;
 
-        // 1. High Priority Logic
-        if (desc.contains("crash") || desc.contains("data loss") || desc.contains("emergency") || desc.contains("hack")) {
-            ticket.setAiPriority("HIGH");
-            ticket.setAiSuggestedResponse("CRITICAL ALERT: This case has been flagged for immediate Engineering review. SLA: 15 minutes.");
-        } 
-        // 2. Finance/Billing Logic
-        else if (desc.contains("refund") || desc.contains("billing") || desc.contains("invoice") || desc.contains("payment")) {
-            ticket.setAiPriority("MEDIUM");
-            ticket.setAiSuggestedResponse("Routed to Finance Dept. Please verify the transaction ID in the attached logs.");
-        } 
-        // 3. General Support Logic
-        else {
-            ticket.setAiPriority("LOW");
-            ticket.setAiSuggestedResponse("Thank you for contacting support. An agent will review your request within 24 hours.");
+    @Value("${openai.model}")
+    private String model;
+
+    @Value("${openai.api.url}") // We load the URL from config now
+    private String apiUrl;
+
+    private final RestTemplate restTemplate = new RestTemplate();
+
+    public Ticket createAndAnalyzeTicket(Ticket ticket) {
+        // 1. System Prompt (The Persona)
+        String systemPrompt = """
+            You are a helpful customer support AI.
+            Analyze the user's complaint.
+            Determine priority (HIGH, MEDIUM, LOW).
+            Draft a short, professional response.
+            
+            Strictly format your answer as:
+            PRIORITY|RESPONSE
+            """;
+
+        String userMessage = "Customer Issue: " + ticket.getDescription();
+
+        // 2. Build Request (Same format as OpenAI!)
+        ChatRequest request = new ChatRequest(
+                model,
+                List.of(new Message("system", systemPrompt), new Message("user", userMessage))
+        );
+
+        // 3. Headers
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Authorization", "Bearer " + apiKey);
+
+        HttpEntity<ChatRequest> entity = new HttpEntity<>(request, headers);
+
+        try {
+            // 4. Call the API (Groq)
+            ChatResponse response = restTemplate.postForObject(
+                    apiUrl,
+                    entity,
+                    ChatResponse.class
+            );
+
+            if (response != null && !response.choices().isEmpty()) {
+                String content = response.choices().get(0).message().content();
+                String[] parts = content.split("\\|", 2);
+
+                if (parts.length == 2) {
+                    ticket.setAiPriority(parts[0].trim());
+                    ticket.setAiSuggestedResponse(parts[1].trim());
+                } else {
+                    ticket.setAiPriority("MEDIUM");
+                    ticket.setAiSuggestedResponse(content);
+                }
+            }
+            ticket.setStatus("PROCESSED_BY_LLAMA");
+
+        } catch (Exception e) {
+            System.err.println("AI Error: " + e.getMessage());
+            ticket.setAiPriority("UNKNOWN");
+            ticket.setAiSuggestedResponse("AI Service unavailable.");
+            ticket.setStatus("AI_ERROR");
         }
 
-        ticket.setStatus("PROCESSED_BY_RULE_ENGINE");
         return ticketRepository.save(ticket);
     }
     
-    // Batch processing helper
     public List<Ticket> processBatch(List<Ticket> tickets) {
         for (Ticket t : tickets) {
             createAndAnalyzeTicket(t);
