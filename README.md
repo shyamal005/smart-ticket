@@ -57,11 +57,12 @@ Unlike traditional support systems that simply store data, SmartTicket utilizes 
 
 ### 1. High Priority Detection (Critical Incident)
 *The AI detects a "Crash" context and immediately escalates priority to HIGH.*
-![Screenshot Placeholder](https://via.placeholder.com/800x400?text=Upload+Your+Red+Ticket+Screenshot+Here)
+<img width="1874" height="903" alt="Image" src="https://github.com/user-attachments/assets/b340e07c-15f0-478e-886c-4b56266c3fc3"/>
+
 
 ### 2. Standard Workflow
 *The AI handles routine billing questions with empathy and standard prioritization.*
-![Screenshot Placeholder](https://via.placeholder.com/800x400?text=Upload+Your+Green+Ticket+Screenshot+Here)
+<img width="1911" height="857" alt="Image" src="https://github.com/user-attachments/assets/02cfd079-c7b8-4995-99ea-f97dd7011fbe"/>
 
 ---
 
