@@ -121,9 +121,6 @@ This project follows enterprise security standards by adhering to the **"12-Fact
   * 💼 **LinkedIn:** https://www.linkedin.com/in/shyamal-kudupudi-001047228/
   * 📧 **Email:** kudipudishaymal0123@gmail.com
 
------
 
-*Built to demonstrate scalable Java architecture and AI integration for the Salesforce Ecosystem.*
 
-```
-```
+
